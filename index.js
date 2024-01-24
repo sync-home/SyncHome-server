@@ -10,10 +10,9 @@ const cookieParser = require('cookie-parser');
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
-// console.log('Secret: ', process.env.Payment_SECRET);
+// console.log('DB_NAME: ', process.env.DB_NAME);
 
 const app = express();
-
 
 app.use(cors({
     origin: [ "http://localhost:5173", "https://synchome.vercel.app" ],
@@ -37,16 +36,39 @@ async function run() {
     try {
         const db = client.db(process.env.DB_NAME);
         const userCollection = db.collection('users');
-        
+
+
+        /* Get all users */
+        app.get('/api/v1/all-users', async (_req, res) => {
+            try {
+                const result = await userCollection.find({}).toArray();
+
+                console.log('All users: ', result);
+                res.send(result)
+            } catch (error) {
+                res.status(404).send({ 'status': error?.code, message: error?.message })
+            }
+
+            /* Get a user by his id */
+            app.get('/api/v1/users/:id', async (req, res) => {
+                try {
+                    const id = req.params?.id
+                    const result = await userCollection.findOne({ _id: new ObjectId(id) });
+
+                    console.log('user: ', result);
+                    res.send(result)
+                } catch (error) {
+                    res.status(404).send({ 'status': error?.code, message: error?.message })
+                }
+            })
+
+        })
+
     } catch (error) {
         console.log(error);
     }
 }
 run().catch(console.dir);
-
-
-
-
 
 app.get('/', (_req, res) => {
     res.send('SyncHome App is running');
