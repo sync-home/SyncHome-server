@@ -46,8 +46,22 @@ async function run() {
                 console.log('All users: ', result);
                 res.send(result)
             } catch (error) {
-
+                res.status(404).send({ 'status': error?.code, message: error?.message })
             }
+
+            /* Get a user by his id */
+            app.get('/api/v1/users/:id', async (req, res) => {
+                try {
+                    const id = req.params?.id
+                    const result = await userCollection.findOne({ _id: new ObjectId(id) });
+
+                    console.log('user: ', result);
+                    res.send(result)
+                } catch (error) {
+                    res.status(404).send({ 'status': error?.code, message: error?.message })
+                }
+            })
+
         })
 
     } catch (error) {
