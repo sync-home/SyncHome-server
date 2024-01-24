@@ -10,10 +10,9 @@ const cookieParser = require('cookie-parser');
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
-// console.log('Secret: ', process.env.Payment_SECRET);
+// console.log('DB_NAME: ', process.env.DB_NAME);
 
 const app = express();
-
 
 app.use(cors({
     origin: [ "http://localhost:5173", "https://synchome.vercel.app" ],
@@ -37,16 +36,25 @@ async function run() {
     try {
         const db = client.db(process.env.DB_NAME);
         const userCollection = db.collection('users');
-        
+
+
+        /* Get all users */
+        app.get('/api/v1/all-users', async (_req, res) => {
+            try {
+                const result = await userCollection.find({}).toArray();
+
+                console.log('All users: ', result);
+                res.send(result)
+            } catch (error) {
+
+            }
+        })
+
     } catch (error) {
         console.log(error);
     }
 }
 run().catch(console.dir);
-
-
-
-
 
 app.get('/', (_req, res) => {
     res.send('SyncHome App is running');
