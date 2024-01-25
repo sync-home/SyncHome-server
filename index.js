@@ -46,22 +46,36 @@ async function run() {
                 console.log('All users: ', result);
                 res.send(result)
             } catch (error) {
-                res.status(404).send({ 'status': error?.code, message: error?.message })
+                res.status(500).send({ 'status': error?.code, message: error?.message })
             }
+        })
 
-            /* Get a user by his id */
-            app.get('/api/v1/users/:id', async (req, res) => {
-                try {
-                    const id = req.params?.id
-                    const result = await userCollection.findOne({ _id: new ObjectId(id) });
+        /* Get a user by his id */
+        app.get('/api/v1/users/:id', async (req, res) => {
+            try {
+                const id = req.params?.id
+                const result = await userCollection.findOne({ _id: new ObjectId(id) });
 
-                    console.log('user: ', result);
-                    res.send(result)
-                } catch (error) {
-                    res.status(404).send({ 'status': error?.code, message: error?.message })
-                }
-            })
+                console.log('user: ', result);
+                res.send(result)
+            } catch (error) {
+                console.log({ 'status': error?.code, message: error?.message });
+                res.status(500).send({ 'status': error?.code, message: error?.message })
+            }
+        })
 
+        /* Create a user */
+        app.post('/api/v1/new-user', async (req, res) => {
+            try {
+                const user = req.body
+                const result = await userCollection.insertOne(user);
+
+                console.log('new user: ', result);
+                res.send(result)
+            } catch (error) {
+                console.log({ 'status': error?.code, message: error?.message });
+                res.status(500).send({ 'status': error?.code, message: error?.message })
+            }
         })
 
     } catch (error) {
