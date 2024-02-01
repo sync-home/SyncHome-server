@@ -80,7 +80,7 @@ async function run() {
                 res.send(result)
             } catch (error) {
                 // console.log({ 'status': error?.code, message: error?.message });
-                res.status(500).send({ 'status': error?.code, message: error?.message })
+                res.status(500).send({ status: error?.code, message: error?.message })
             }
         })
 
@@ -91,11 +91,25 @@ async function run() {
             try {
                 const result = await notificationCollection.find({}).toArray();
 
-                console.log('notifications: ', result);
+                // console.log('notifications: ', result);
                 res.send(result)
             } catch (error) {
-                console.log({ 'status': error?.code, message: error?.message });
-                res.status(500).send({ 'status': error?.code, message: error?.message })
+                // console.log({ 'status': error?.code, message: error?.message });
+                res.status(500).send({ status: error?.code, message: error?.message })
+            }
+        })
+
+        /* Delete a notification by Id */
+        app.get('/api/v1/remove-notification/:id', async (req, res) => {
+            try {
+                const { id } = req?.params;
+                // const result = await notificationCollection.deleteOne({ _id: new ObjectId(id) });
+
+                console.log('deleted notification: ', id);
+                res.send(result)
+            } catch (error) {
+                console.log({ status: error?.code, message: error?.message });
+                res.status(500).send({ status: error?.code, message: error?.message })
             }
         })
 
@@ -110,5 +124,5 @@ app.get('/', (_req, res) => {
 })
 
 app.listen(port, () => {
-    console.log(`SyncHome server is running on ${port}`);
+    console.log(`SyncHome server is running on http://localhost:${port}`);
 })
