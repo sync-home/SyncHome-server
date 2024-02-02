@@ -70,6 +70,20 @@ async function run() {
             }
         })
 
+        /* Check is existing user or not */
+        app.get('/api/v1/is-existing-user/:email', async (req, res) => {
+            try {
+                const email = req.params?.email
+                const result = await userCollection.findOne({ email });
+
+                // console.log('user: ', result);
+                res.send(result)
+            } catch (error) {
+                // console.log({ 'status': error?.code, message: error?.message });
+                res.status(500).send({ 'status': error?.code, message: error?.message })
+            }
+        })
+
         /* Create a user */
         app.post('/api/v1/new-user', async (req, res) => {
             try {
@@ -85,7 +99,30 @@ async function run() {
         })
 
 
+        /**
+         * =============================
+         * Resident APIs
+         * =============================
+         */
+        app.get('/api/v1/resident/:email', async (req, res) => {
+            try {
+                const { email } = req?.params;
+                const result = await userCollection.findOne({ email });
 
+                // console.log('resident info: ', email);
+                res.send(result)
+            } catch (error) {
+                // console.log({ status: error?.code, message: error?.message });
+                res.status(500).send({ status: error?.code, message: error?.message })
+            }
+        })
+
+
+        /**
+         * =============================
+         * Notification APIs
+         * =============================
+         */
         /* Get all notifications */
         app.get('/api/v1/notifications', async (_req, res) => {
             try {
@@ -103,15 +140,17 @@ async function run() {
         app.get('/api/v1/remove-notification/:id', async (req, res) => {
             try {
                 const { id } = req?.params;
-                // const result = await notificationCollection.deleteOne({ _id: new ObjectId(id) });
+                const result = await notificationCollection.deleteOne({ _id: new ObjectId(id) });
 
-                console.log('deleted notification: ', id);
+                // console.log('deleted notification: ', id);
                 res.send(result)
             } catch (error) {
-                console.log({ status: error?.code, message: error?.message });
+                // console.log({ status: error?.code, message: error?.message });
                 res.status(500).send({ status: error?.code, message: error?.message })
             }
         })
+
+
 
     } catch (error) {
         console.log(error);
