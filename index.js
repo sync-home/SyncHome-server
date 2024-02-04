@@ -15,7 +15,7 @@ const port = process.env.PORT || 5000;
 const app = express();
 
 app.use(cors({
-    origin: [ "http://localhost:5173", "https://synchome.vercel.app" ],
+    origin: [ "http://localhost:3000", "https://synchome.vercel.app" ],
     credentials: true
 }));
 app.use(express.static("public"));
@@ -40,12 +40,121 @@ async function run() {
 
 
         /**
+         * ===================================================
+         *  Auth APIs 
+         * ===================================================
+         * */
+
+        /* Middleware JWT implementation */
+        const verifyToken = async (req, res, next) => {
+            try {
+                // console.log('the token to be verified: ', req?.cookies);
+                const token = req?.cookies?.[ "SyncHome-token" ];
+                console.log('token from browser cookie: ', token);
+
+                if (!token) return res.status(401).send({ message: 'Unauthorized access' })
+
+                jsonwebtoken.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+                    // console.log(err);
+                    if (err) {
+                        // console.log(err);
+                        return res.status(401).send({ message: 'You are not authorized' })
+                    }
+
+                    // console.log('Decoded token: ', decoded);
+                    req.user = decoded;
+                    next();
+                })
+            } catch (error) {
+                // console.log(error);
+                res.status(500).send({ message: error?.message || error?.errorText });
+            }
+        }
+
+        /* verify admin after verify token */
+        const verifyEmployee = async (req, res, next) => {
+            const currentUser = req?.query;
+            const { email } = req?.user;
+
+            if (currentUser?.email !== email) return res.status(403).send({ message: 'Forbidden access.' })
+            console.log(email);
+
+            const theUser = await userCollection.findOne({ email })
+            console.log('is Employee : ', theUser);
+
+            const isEmployee = theUser?.role === 'employee'
+            if (!isEmployee) res.status(403).send({ message: 'Access Forbidden' })
+
+            next();
+        }
+
+        const verifyAdmin = async (req, res, next) => {
+            const currentUser = req?.query;
+            const { email } = req?.user;
+
+            if (currentUser?.email !== email) return res.status(403).send({ message: 'Forbidden access.' })
+
+            // console.log(email);
+
+            const theUser = await userCollection.findOne({ email })
+            // console.log('isAdmin : ', theUser);
+
+            const isAdmin = theUser?.role === 'admin'
+            if (!isAdmin) res.status(403).send({ message: 'Access Forbidden' })
+
+            next();
+        }
+
+        const setTokenCookie = async (req, res, next) => {
+            const user = req?.body;
+
+            if (user?.email) {
+                const token = jsonwebtoken.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '24h' })
+
+                // console.log('Token generated: ', token);
+                res
+                    .cookie('SyncHome-token', token, {
+                        // domain: [ "http://localhost:3000", "https://synchome.vercel.app" ],
+                        httpOnly: true,
+                        secure: process.env.NODE_ENV === 'production',
+                        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+                        // secure: true,
+                        // sameSite: 'none'
+                    })
+
+                req[ "SyncHome-token" ] = token;
+
+                // console.log('Token Created: ', req[ "SyncHome-token" ]);
+                next();
+            } else {
+                res.status(400).send({ success: false, message: 'Unknown error occurred' })
+            }
+        }
+
+        /* Create JWT */
+        app.post('/api/v1/auth/jwt', setTokenCookie, (req, res) => {
+            try {
+                const token = req[ "SyncHome-token" ];
+
+                // console.log('token in cookie: ', token);
+
+                if (!token) return res.status(400).send({ success: false, message: 'Unknown error occurred' })
+
+                // console.log('User sign in successfully.');
+                res.send({ success: true })
+            } catch (error) {
+                res.send({ error: true, message: error.message })
+            }
+
+        })
+
+        /**
          * =============================
          * Users APIs
          * =============================
          */
         /* Get all users */
-        app.get('/api/v1/all-users', async (_req, res) => {
+        app.get('/api/v1/all-users', verifyToken, verifyAdmin, async (_req, res) => {
             try {
                 const result = await userCollection.find({}).toArray();
 
@@ -70,8 +179,8 @@ async function run() {
             }
         })
 
-        /* Check is existing user or not */
-        app.get('/api/v1/is-existing-user/:email', async (req, res) => {
+        /* get user info using signed in user email' */
+        app.get('/api/v1/user-by-email/:email', async (req, res) => {
             try {
                 const email = req.params?.email
                 const result = await userCollection.findOne({ email });
@@ -104,19 +213,6 @@ async function run() {
          * Resident APIs
          * =============================
          */
-        app.get('/api/v1/resident/:email', async (req, res) => {
-            try {
-                const { email } = req?.params;
-                const result = await userCollection.findOne({ email });
-
-                // console.log('resident info: ', email);
-                res.send(result)
-            } catch (error) {
-                // console.log({ status: error?.code, message: error?.message });
-                res.status(500).send({ status: error?.code, message: error?.message })
-            }
-        })
-
 
         /**
          * =============================
@@ -149,8 +245,6 @@ async function run() {
                 res.status(500).send({ status: error?.code, message: error?.message })
             }
         })
-
-
 
     } catch (error) {
         console.log(error);
