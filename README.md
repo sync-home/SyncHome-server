@@ -32,7 +32,7 @@ cd SyncHome-server
 npm i
 ```
 
-## Environment Variables
+### Environment Variables
 
 The environment variable files should be named as `.env` only.
 Here the env variables are as below (put them with your own corresponding values in .env file):
@@ -45,7 +45,7 @@ Here the env variables are as below (put them with your own corresponding values
 ### JWT
 - `ACCESS_TOKEN_SECRET`
 
-## Usage
+### Usage
 
 First of all install `nodemon` globally.
 After setting all, to start the development server:
@@ -86,8 +86,6 @@ This will run the application in development mode. Open [http://localhost:5000](
    - Before starting to code, make sure to pull the development branch.
    - Before pushing code to GitHub, make sure to pull the `stage` branch.
 
-### Branch and Commit Rules
-
 #### Primary Branches:
 
 - `main`
@@ -100,13 +98,8 @@ This will run the application in development mode. Open [http://localhost:5000](
 
 #### Commit Messages:
 
-##### Commit Message Format:
-
 - `[post](notification): add Eid notification`
 
-##### Pull Request Message Format:
-
-- `[post](notification): add Eid notification`
 
 ## Contributing
 
