@@ -153,6 +153,22 @@ async function run() {
          * Users APIs
          * =============================
          */
+
+        /* check role of the current user */
+        /* get user info using signed in user email' */
+        app.get('/api/v1/user-role/:email', async (req, res) => {
+            try {
+                const email = req.params?.email
+                const result = await userCollection.findOne({ email });
+
+                // console.log('user: ', result);
+                res.send({role: result?.role})
+            } catch (error) {
+                // console.log({ 'status': error?.code, message: error?.message });
+                res.status(500).send({ 'status': error?.code, message: error?.message })
+            }
+        })
+
         /* Get all users */
         app.get('/api/v1/all-users', verifyToken, verifyAdmin, async (_req, res) => {
             try {
