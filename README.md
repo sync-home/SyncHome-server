@@ -1,7 +1,7 @@
-# [SyncHome: Smart Residential Building Management System](https://synchome.vercel.app)
+# [SyncHome](https://synchome.vercel.app)
+### [SyncHome Client](https://github.com/sync-home/SyncHome)
 
-### [SyncHome Server](https://github.com/sync-home/SyncHome-server)
-
+## Smart Residential Building Management System
 SyncHome is a Smart Residential Building Management System designed for efficient building management and enhanced living experiences.
 
 ## Packages Used
