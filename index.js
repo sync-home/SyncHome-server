@@ -15,7 +15,7 @@ const port = process.env.PORT || 5000;
 const app = express();
 
 app.use(cors({
-    origin: [ "http://localhost:3000", "https://synchome.vercel.app" ],
+    origin: ["http://localhost:3000", "https://synchome.vercel.app"],
     credentials: true
 }));
 app.use(express.static("public"));
@@ -37,6 +37,7 @@ async function run() {
         const db = client.db(process.env.DB_NAME);
         const userCollection = db.collection('users');
         const notificationCollection = db.collection('notifications');
+        const reportCollection = db.collection('reports')
 
 
         /**
@@ -49,7 +50,7 @@ async function run() {
         const verifyToken = async (req, res, next) => {
             try {
                 // console.log('the token to be verified: ', req?.cookies);
-                const token = req?.cookies?.[ "SyncHome-token" ];
+                const token = req?.cookies?.["SyncHome-token"];
                 console.log('token from browser cookie: ', token);
 
                 if (!token) return res.status(401).send({ message: 'Unauthorized access' })
@@ -122,7 +123,7 @@ async function run() {
                         // sameSite: 'none'
                     })
 
-                req[ "SyncHome-token" ] = token;
+                req["SyncHome-token"] = token;
 
                 // console.log('Token Created: ', req[ "SyncHome-token" ]);
                 next();
@@ -134,7 +135,7 @@ async function run() {
         /* Create JWT */
         app.post('/api/v1/auth/jwt', setTokenCookie, (req, res) => {
             try {
-                const token = req[ "SyncHome-token" ];
+                const token = req["SyncHome-token"];
 
                 // console.log('token in cookie: ', token);
 
@@ -162,7 +163,7 @@ async function run() {
                 const result = await userCollection.findOne({ email });
 
                 // console.log('user: ', result);
-                res.send({role: result?.role})
+                res.send({ role: result?.role })
             } catch (error) {
                 // console.log({ 'status': error?.code, message: error?.message });
                 res.status(500).send({ 'status': error?.code, message: error?.message })
@@ -221,6 +222,41 @@ async function run() {
                 // console.log({ 'status': error?.code, message: error?.message });
                 res.status(500).send({ status: error?.code, message: error?.message })
             }
+        })
+
+
+        /***
+         * =============================
+         * Employee Apis
+         * =============================
+         */
+
+        // get the reports data
+        app.get('/reports', async (req, res) => {
+            const result = await reportCollection.find().toArray()
+            res.send(result)
+        })
+
+        // reports specific data
+        app.get('/reports/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await reportCollection.findOne(query)
+            res.send(result)
+        })
+
+
+        // when problem solved change the status
+        app.patch('/reports/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const updatedDoc = {
+                $set: {
+                    status: 'solved'
+                }
+            }
+            const result = await reportCollection.updateOne(query, updatedDoc)
+            res.send(result)
         })
 
 
