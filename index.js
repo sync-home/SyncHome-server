@@ -271,6 +271,14 @@ async function run() {
          * Notification APIs
          * =============================
          */
+
+        // post notification data
+        app.post('/api/v1/notifications', async(req,res) => {
+            const user = req.body;
+            const result = await notificationCollection.insertOne(user)
+            res.send(result)
+        })
+
         /* Get all notifications */
         app.get('/api/v1/notifications', async (_req, res) => {
             try {
@@ -284,8 +292,16 @@ async function run() {
             }
         })
 
+        // get specific data from notification
+        app.get("/api/v1/notifications/:id", async(req, res) => {
+            const id = req.params;
+            const query = {_id : new ObjectId(id)}
+            const result = await notificationCollection.findOne(query)
+            res.send(result)
+        })
+
         /* Delete a notification by Id */
-        app.get('/api/v1/remove-notification/:id', async (req, res) => {
+        app.delete('/api/v1/remove-notification/:id', async (req, res) => {
             try {
                 const { id } = req?.params;
                 const result = await notificationCollection.deleteOne({ _id: new ObjectId(id) });
