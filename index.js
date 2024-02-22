@@ -261,11 +261,24 @@ async function run() {
         })
 
 
-        /**
-         * =============================
-         * Resident APIs
-         * =============================
-         */
+       //Resident APIs
+         
+        //report post api
+        app.post('/api/v1/report', async (req, res) => {
+            const report = req.body;
+            try {
+                const result = await reportCollection.insertOne(report);
+                res.json({ success: true, message: 'Report submitted successfully', data: result.ops });
+            } catch (error) {
+                console.error('Error:', error);
+                res.status(500).json({ success: false, message: 'Internal Server Error' });
+            }
+        });
+
+        //Resident APIs Endpoints
+        
+        
+
 
         /**
          * =============================
