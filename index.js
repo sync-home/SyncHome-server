@@ -38,6 +38,7 @@ async function run() {
         const userCollection = db.collection('users');
         const notificationCollection = db.collection('notifications');
         const reportCollection = db.collection('reports')
+        const trashCollection = db.collection('trash')
 
 
         /**
@@ -232,13 +233,13 @@ async function run() {
          */
 
         // get the reports data
-        app.get('/reports', async (req, res) => {
+        app.get('/api/v1/reports', async (req, res) => {
             const result = await reportCollection.find().toArray()
             res.send(result)
         })
 
         // reports specific data
-        app.get('/reports/:id', async (req, res) => {
+        app.get('/api/v1/reports/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const result = await reportCollection.findOne(query)
@@ -247,7 +248,7 @@ async function run() {
 
 
         // when problem solved change the status
-        app.patch('/reports/:id', async (req, res) => {
+        app.patch('/api/v1/reports/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const updatedDoc = {
@@ -297,6 +298,13 @@ async function run() {
             const id = req.params;
             const query = {_id : new ObjectId(id)}
             const result = await notificationCollection.findOne(query)
+            res.send(result)
+        })
+
+        // for users delete data collection
+        app.post("/api/v1/trash", async(req,res) => {
+            const body = req.body;
+            const result = await trashCollection.insertOne(body)
             res.send(result)
         })
 
