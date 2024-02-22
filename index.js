@@ -260,11 +260,8 @@ async function run() {
         })
 
 
-        /**
-         * =============================
-         * Resident APIs
-         * =============================
-         */
+       //Resident APIs
+         
         //report post api
         app.post('/api/v1/report', async (req, res) => {
             const report = req.body;
@@ -277,11 +274,8 @@ async function run() {
             }
         });
 
-        /**
-         * =============================
-         * Resident APIs Endpoints
-         * =============================
-         */
+        //Resident APIs Endpoints
+        
         
 
 
