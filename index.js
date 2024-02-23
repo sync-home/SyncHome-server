@@ -15,7 +15,7 @@ const port = process.env.PORT || 5000;
 const app = express();
 
 app.use(cors({
-    origin: [ "http://localhost:3000", "https://synchome.vercel.app" ],
+    origin: ["http://localhost:3000", "https://synchome.vercel.app"],
     credentials: true
 }));
 app.use(express.static("public"));
@@ -52,7 +52,7 @@ async function run() {
         const verifyToken = async (req, res, next) => {
             try {
                 // console.log('the token to be verified: ', req?.cookies);
-                const token = req?.cookies?.[ "SyncHome-token" ];
+                const token = req?.cookies?.["SyncHome-token"];
                 console.log('token from browser cookie: ', token);
 
                 if (!token) return res.status(401).send({ message: 'Unauthorized access' })
@@ -125,7 +125,7 @@ async function run() {
                         // sameSite: 'none'
                     })
 
-                req[ "SyncHome-token" ] = token;
+                req["SyncHome-token"] = token;
 
                 // console.log('Token Created: ', req[ "SyncHome-token" ]);
                 next();
@@ -137,7 +137,7 @@ async function run() {
         /* Create JWT */
         app.post('/api/v1/auth/jwt', setTokenCookie, (req, res) => {
             try {
-                const token = req[ "SyncHome-token" ];
+                const token = req["SyncHome-token"];
 
                 // console.log('token in cookie: ', token);
 
