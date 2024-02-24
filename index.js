@@ -37,8 +37,9 @@ async function run() {
         const db = client.db(process.env.DB_NAME);
         const userCollection = db.collection('users');
         const notificationCollection = db.collection('notifications');
-        const reportCollection = db.collection('reports')
-        const trashCollection = db.collection('trash')
+        const apartmentCollection = db.collection("apartments");
+        const requestCollection = db.collection("requests");
+        const reportCollection = db.collection("reports");
 
 
         /**
@@ -150,75 +151,309 @@ async function run() {
 
         })
 
+
+
         /**
-         * =============================
-         * Users APIs
-         * =============================
-         */
+       * ===================================================
+       *  Users APIs 
+       * ===================================================
+       * */
 
-        /* check role of the current user */
-        /* get user info using signed in user email' */
-        app.get('/api/v1/user-role/:email', async (req, res) => {
-            try {
-                const email = req.params?.email
-                const result = await userCollection.findOne({ email });
-                console.log(email);
-
-                // console.log('user: ', result);
-                res.send({ role: result?.role })
-            } catch (error) {
-                // console.log({ 'status': error?.code, message: error?.message });
-                res.status(500).send({ 'status': error?.code, message: error?.message })
-            }
+        app.get('/api/v1/users', async (req, res) => {
+            const result = await userCollection.find().toArray();
+            res.send(result);
         })
 
-        /* Get all users */
-        app.get('/api/v1/all-users', verifyToken, verifyAdmin, async (_req, res) => {
-            try {
-                const result = await userCollection.find({}).toArray();
-
-                // console.log('All users: ', result);
-                res.send(result)
-            } catch (error) {
-                res.status(500).send({ 'status': error?.code, message: error?.message })
-            }
-        })
-
-        /* Get a user by his id */
-        app.get('/api/v1/users/:id', async (req, res) => {
-            try {
-                const id = req.params?.id
-                const result = await userCollection.findOne({ _id: new ObjectId(id) });
-
-                // console.log('user: ', result);
-                res.send(result)
-            } catch (error) {
-                // console.log({ 'status': error?.code, message: error?.message });
-                res.status(500).send({ 'status': error?.code, message: error?.message })
-            }
-        })
-
-        /* get user info using signed in user email' */
-        app.get('/api/v1/user-by-email/:email', async (req, res) => {
-            try {
-                const email = req.params?.email
-                const result = await userCollection.findOne({ email });
-
-                // console.log('user: ', result);
-                res.send(result)
-            } catch (error) {
-                // console.log({ 'status': error?.code, message: error?.message });
-                res.status(500).send({ 'status': error?.code, message: error?.message })
-            }
-        })
-
-        /* Create a user */
         app.post('/api/v1/new-user', async (req, res) => {
-            try {
-                const user = req.body
-                const result = await userCollection.insertOne(user);
+            const data = req.body;
+            const result = await userCollection.insertOne(data);
+            res.send(result);
+        })
 
-                // console.log('new user: ', result);
+        app.get('/api/v1/users/:email', async (req, res) => {
+            const email = req.params?.email;
+            const result = await userCollection.findOne({ email: email });
+            res.send(result);
+        })
+
+        app.patch('/api/v1/update-user/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const data = req.body.data;
+            const updateDoc = {
+                $set: {
+                    name: data?.name,
+                    email: data?.email,
+                    phone: data?.phone,
+                    role: data?.role
+                }
+            }
+            const result = await userCollection.updateOne(query, updateDoc);
+            res.send(result);
+        })
+
+        app.delete('/api/v1/delete-user/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await userCollection.deleteOne(query);
+            res.send(result);
+        })
+
+        app.put('/api/v1/update-profile/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email };
+            const data = req.body.data;
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    name: data?.name,
+                    address: data?.address,
+                    phone: data?.phone,
+                    age: data?.age,
+                    gender: data?.gender,
+                    region: data?.region,
+                    role: data?.role
+                }
+            }
+            const result = await userCollection.updateOne(query, updateDoc, options);
+            res.send(result);
+        })
+
+        app.put('/api/v1/userLoginActivity/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email };
+            const data = req.body.data;
+            const updateDoc = {
+                $push: { login_activity: { "date": data } }
+            }
+            const result = await userCollection.updateOne(query, updateDoc);
+            res.send(result);
+        })
+
+
+        /**
+          * ===================================================
+          *  Resident/Employee's request APIs 
+          * ===================================================
+          * */
+
+
+        app.post('/api/v1/requests', async (req, res) => {
+            const data = req.body;
+            const result = await requestCollection.insertOne(data);
+            res.send();
+        })
+
+        app.get('/api/v1/requests', async (req, res) => {
+            const result = await requestCollection.find().toArray();
+            res.send(result);
+        })
+
+        app.get('/api/v1/request/:email', async (req, res) => {
+            const email = req.params.email;
+            const result = await requestCollection.findOne({ email });
+            res.send(result);
+        })
+
+        app.patch('/api/v1/requests/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const data = req.body.req;
+            const updateDoc = {
+                $set: { 'status': data }
+            }
+            const result = await requestCollection.updateOne(query, updateDoc);
+            res.send(result);
+        })
+
+        /**
+          * ===================================================
+          *  Apartments APIs 
+          * ===================================================
+          * */
+
+        app.get('/api/v1/apartments', async (req, res) => {
+            const result = await apartmentCollection.find().toArray();
+            res.send(result);
+        })
+
+        app.get('/api/v1/apartments/:email', async (req, res) => {
+            const email = req.params.email;
+            const result = await apartmentCollection.findOne({ email });
+            res.send(result);
+        })
+
+        app.put('/api/v1/apartments/:id', async (req, res) => {
+            const id = req.params?.id;
+            const query = { _id: new ObjectId(id) };
+            const device = req.body.data;
+            const updateDoc = { $push: { devices: device } }
+            const result = await apartmentCollection.updateOne(query, updateDoc);
+            res.send(result);
+        })
+
+        app.put('/api/v1/apartments/members/:id', async (req, res) => {
+            const id = req.params?.id;
+            const query = { _id: new ObjectId(id) };
+            const member = req.body.data;
+            const updateDoc = { $set: { members: member } };
+            const result = await apartmentCollection.updateOne(query, updateDoc);
+            res.send(result);
+        })
+
+        app.put('/api/v1/apartments/wifi/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const data = req.body.data;
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    router: { name: data.name, brand: data.brand, img: data.img, status: data.status },
+                    wifi: data.wifi
+                }
+            }
+            const result = await apartmentCollection.updateOne(query, updateDoc, options);
+            res.send(result);
+        })
+
+        app.put('/api/v1/apartments/ac/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const data = req.body.data;
+            const options = { upsert: true };
+            const updateDoc = { $set: { ac: data } };
+            const result = await apartmentCollection.updateOne(query, updateDoc, options);
+            res.send(result);
+        })
+
+        app.put('/api/v1/apartments/cctv/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const data = req.body.data;
+            const options = { upsert: true };
+            const updateDoc = { $set: { cctv: data } };
+            const result = await apartmentCollection.updateOne(query, updateDoc, options);
+            res.send(result);
+        })
+
+        app.put('/api/v1/apartments/total/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const data = req.body.data;
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    "energy_usage": [
+                        { "duration": "week", "electricity": data?.electricity1, "water": data?.water1, "gas": data?.gas1 },
+                        { "duration": "month", "electricity": data?.electricity2, "water": data?.water2, "gas": data?.gas2 },
+                        { "duration": "year", "electricity": data?.electricity3, "water": data?.water3, "gas": data?.gas3 },
+                    ]
+                }
+            }
+            const result = await apartmentCollection.updateOne(query, updateDoc, options);
+            res.send(result);
+        })
+
+        app.put('/api/v1/apartments/weekly/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const data = req.body.data;
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    "usageData": [
+                        { "day": "Monday", "electricity": data?.electricity1, "water": data?.water1, "gas": data?.gas1 },
+                        { "day": "Tuesday", "electricity": data?.electricity2, "water": data?.water2, "gas": data?.gas2 },
+                        { "day": "Wednesday", "electricity": data?.electricity3, "water": data?.water3, "gas": data?.gas3 },
+                        { "day": "Thursday", "electricity": data?.electricity4, "water": data?.water4, "gas": data?.gas4 },
+                        { "day": "Friday", "electricity": data?.electricity5, "water": data?.water5, "gas": data?.gas5 },
+                        { "day": "Saturday", "electricity": data?.electricity6, "water": data?.water6, "gas": data?.gas6 },
+                        { "day": "Sunday", "electricity": data?.electricity7, "water": data?.water7, "gas": data?.gas7 }
+                    ]
+                }
+            }
+            const result = await apartmentCollection.updateOne(query, updateDoc, options);
+            res.send(result);
+        })
+
+        app.put('/api/v1/apartments/del-device/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const data = req.body.index;
+            const unsetDoc = {
+                $unset: { [`devices.${data}`]: 1 }
+            }
+            await apartmentCollection.updateOne(query, unsetDoc);
+            const pullDoc = {
+                $pull: { "devices": null }
+            }
+            const result = await apartmentCollection.updateOne(query, pullDoc);
+            res.send(result);
+        })
+
+        app.put('/api/v1/apartments/device-switch/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const data = req.body;
+            const updateDoc = {
+                $set: { [`devices.${data?.index}.status`]: data?.value }
+            }
+            const result = await apartmentCollection.updateOne(query, updateDoc);
+            res.send(result);
+        })
+
+        app.put('/api/v1/apartments/simple-switch/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const data = req.body;
+            const updateDoc = {
+                $set: { [`${data?.name}.status`]: data?.value }
+            }
+            const result = await apartmentCollection.updateOne(query, updateDoc);
+            res.send(result);
+        })
+
+        app.patch('/api/v1/apartments/actemp/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const temp = req.body.tempControl;
+            const updateDoc = {
+                $set: { "ac.temp": temp }
+            }
+            const result = await apartmentCollection.updateOne(query, updateDoc);
+            res.send(result);
+        })
+
+        app.patch('/api/v1/apartments/acmode/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const mode = req.body.newMode;
+            const updateDoc = {
+                $set: { "ac.mode": mode }
+            }
+            const result = await apartmentCollection.updateOne(query, updateDoc);
+            res.send(result);
+        })
+
+        /**
+             * =============================
+             * Notification APIs
+             * =============================
+             */
+        /* Get all notifications */
+        // post notification data
+        app.post('/api/v1/notifications', async (req, res) => {
+            const user = req.body;
+            const result = await notificationCollection.insertOne(user)
+            res.send(result)
+        })
+
+        /* Get all notifications */
+        app.get('/api/v1/notifications', async (_req, res) => {
+            try {
+                const result = await notificationCollection.find({}).toArray();
+
+                // console.log('notifications: ', result);
                 res.send(result)
             } catch (error) {
                 // console.log({ 'status': error?.code, message: error?.message });
@@ -226,11 +461,42 @@ async function run() {
             }
         })
 
+        // get specific data from notification
+        app.get("/api/v1/notifications/:id", async (req, res) => {
+            const id = req.params;
+            const query = { _id: new ObjectId(id) }
+            const result = await notificationCollection.findOne(query)
+            res.send(result)
+        })
+
+        // for users delete data collection
+        app.post("/api/v1/trash", async (req, res) => {
+            const body = req.body;
+            const result = await trashCollection.insertOne(body)
+            res.send(result)
+        })
+
+        /* Delete a notification by Id */
+        app.delete('/api/v1/remove-notification/:id', async (req, res) => {
+            try {
+                const { id } = req?.params;
+                const result = await notificationCollection.deleteOne({ _id: new ObjectId(id) });
+
+                // console.log('deleted notification: ', id);
+                res.send(result)
+            } catch (error) {
+                // console.log({ status: error?.code, message: error?.message });
+                res.status(500).send({ status: error?.code, message: error?.message })
+            }
+        })
+
+
 
         /***
-         * =============================
-         * Employee Apis
-         * =============================
+         * =======================
+         *       EMPLOYEE API
+         * =======================
+         * 
          */
 
         // get the reports data
@@ -262,66 +528,7 @@ async function run() {
         })
 
 
-        /**
-         * =============================
-         * Resident APIs
-         * =============================
-         */
 
-        /**
-         * =============================
-         * Notification APIs
-         * =============================
-         */
-
-        // post notification data
-        app.post('/api/v1/notifications', async(req,res) => {
-            const user = req.body;
-            const result = await notificationCollection.insertOne(user)
-            res.send(result)
-        })
-
-        /* Get all notifications */
-        app.get('/api/v1/notifications', async (_req, res) => {
-            try {
-                const result = await notificationCollection.find({}).toArray();
-
-                // console.log('notifications: ', result);
-                res.send(result)
-            } catch (error) {
-                // console.log({ 'status': error?.code, message: error?.message });
-                res.status(500).send({ status: error?.code, message: error?.message })
-            }
-        })
-
-        // get specific data from notification
-        app.get("/api/v1/notifications/:id", async(req, res) => {
-            const id = req.params;
-            const query = {_id : new ObjectId(id)}
-            const result = await notificationCollection.findOne(query)
-            res.send(result)
-        })
-
-        // for users delete data collection
-        app.post("/api/v1/trash", async(req,res) => {
-            const body = req.body;
-            const result = await trashCollection.insertOne(body)
-            res.send(result)
-        })
-
-        /* Delete a notification by Id */
-        app.delete('/api/v1/remove-notification/:id', async (req, res) => {
-            try {
-                const { id } = req?.params;
-                const result = await notificationCollection.deleteOne({ _id: new ObjectId(id) });
-
-                // console.log('deleted notification: ', id);
-                res.send(result)
-            } catch (error) {
-                // console.log({ status: error?.code, message: error?.message });
-                res.status(500).send({ status: error?.code, message: error?.message })
-            }
-        })
 
     } catch (error) {
         console.log(error);
