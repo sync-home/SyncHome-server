@@ -162,6 +162,7 @@ async function run() {
             try {
                 const email = req.params?.email
                 const result = await userCollection.findOne({ email });
+                console.log(email);
 
                 // console.log('user: ', result);
                 res.send({ role: result?.role })
