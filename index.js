@@ -40,6 +40,7 @@ async function run() {
     const notificationCollection = db.collection("notifications");
     const reportCollection = db.collection("reports");
     const washingMachineCollection = db.collection("washing");
+    const communityEventCollection = db.collection("events");
     const trashCollection = db.collection("trash");
 
     /**
@@ -323,6 +324,16 @@ async function run() {
         const result = await washingMachineCollection
           .find({ email: email })
           .toArray();
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ status: error?.code, message: error?.message });
+      }
+    });
+
+     /* find specific report filtering by email */
+     app.get("/api/v1/events", async (req, res) => {
+      try {
+        const result = await communityEventCollection.find({}).toArray();
         res.send(result);
       } catch (error) {
         res.status(500).send({ status: error?.code, message: error?.message });
