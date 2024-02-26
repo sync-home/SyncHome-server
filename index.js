@@ -159,6 +159,20 @@ async function run() {
        * ===================================================
        * */
 
+        /* get user info using signed in user email' */
+        app.get('/api/v1/user-role/:email', async (req, res) => {
+            try {
+                const email = req.params?.email
+                const result = await userCollection.findOne({ email });
+
+                // console.log('user: ', result);
+                res.send({ role: result?.role })
+            } catch (error) {
+                // console.log({ 'status': error?.code, message: error?.message });
+                res.status(500).send({ 'status': error?.code, message: error?.message })
+            }
+        })
+
         app.get('/api/v1/users', async (req, res) => {
             const result = await userCollection.find().toArray();
             res.send(result);
@@ -166,6 +180,11 @@ async function run() {
 
         app.post('/api/v1/new-user', async (req, res) => {
             const data = req.body;
+            const query = { email: user.email }
+            const existingUser = await userCollection.findOne(query)
+            if (existingUser) {
+                return res.send({ message: 'user already exists', insertedId: null })
+            }
             const result = await userCollection.insertOne(data);
             res.send(result);
         })
