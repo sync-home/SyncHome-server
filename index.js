@@ -328,9 +328,7 @@ async function run() {
           });
 
           // console.log('user: ', result);
-          res.send({
-            role: result?.role
-          });
+          res.send(result);
         } catch (error) {
           // console.log({ 'status': error?.code, message: error?.message });
           res.status(500).send({
