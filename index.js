@@ -46,6 +46,7 @@ async function run() {
     const requestCollection = db.collection("requests");
     const reportCollection = db.collection("reports");
     const washingMachineCollection = db.collection("washing");
+    const communityEventCollection = db.collection("events");
     const trashCollection = db.collection("trash");
 
     /**
@@ -498,6 +499,16 @@ async function run() {
           });
         }
       });
+
+     /* find specific report filtering by email */
+     app.get("/api/v1/events", async (req, res) => {
+      try {
+        const result = await communityEventCollection.find({}).toArray();
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ status: error?.code, message: error?.message });
+      }
+    });
 
     //Resident APIs Endpoints
 
