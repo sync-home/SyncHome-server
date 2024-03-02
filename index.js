@@ -151,8 +151,9 @@ async function run() {
         /* set cookie to the user's browser */
         res.cookie("SyncHomeToken", token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV !== "production",
-          sameSite: process.env.NODE_ENV === "production" ? "Strict" : "None",
+          secure: true,
+          sameSite: "Strict",
+          // sameSite: "None",
         });
 
         req.SyncHomeToken = token;
@@ -321,7 +322,7 @@ async function run() {
           const result = await userCollection.findOne({
             email
           });
-          
+
           res.send({
             role: result?.role
           });
