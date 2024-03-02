@@ -2,11 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const jsonwebtoken = require("jsonwebtoken");
-const cookieParser = require("cookie-parser");
-
-// const stripe = require("stripe")(process.env.Payment_SECRET);
-
-/* All require statements must in top portion to access desired components / functions */
+const cookieParser = require('cookie-parser')
 
 const {
   MongoClient,
@@ -14,19 +10,18 @@ const {
   ObjectId
 } = require("mongodb");
 const port = process.env.PORT || 5000;
-// console.log('DB_NAME: ', process.env.DB_NAME);
 
 const app = express();
+app.use(cookieParser(process.env.ACCESS_TOKEN_SECRET));
 
 app.use(
   cors({
-    origin: ["http://localhost:3000", "https://synchome.vercel.app"],
+    origin: [ "http://localhost:3000", "https://synchome.vercel.app" ],
     credentials: true,
   })
 );
 app.use(express.static("public"));
 app.use(express.json());
-app.use(cookieParser());
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(process.env.URI, {
@@ -58,37 +53,34 @@ async function run() {
     /* Middleware JWT implementation */
     const verifyToken = async (req, res, next) => {
       try {
-        // console.log('the token to be verified: ', req?.cookies);
-        const token = req?.cookies?.["SyncHome-token"];
-        console.log("token from browser cookie: ", token);
+        const token = req?.cookies?.SyncHomeToken;
+        // console.log("token from browser cookie: ", token);
 
+        /* check the cookie set to the user's browser correctly */
         if (!token)
           return res.status(401).send({
-          message: "Unauthorized access"
-        });
+            message: "Unauthorized access"
+          });
 
         jsonwebtoken.verify(
           token,
           process.env.ACCESS_TOKEN_SECRET,
           (err, decoded) => {
-            // console.log(err);
             if (err) {
-              // console.log(err);
               return res
-              .status(401)
-              .send({
-                message: "You are not authorized"
-              });
+                .status(401)
+                .send({
+                  message: "You are not authorized"
+                });
 
             }
-
-            // console.log('Decoded token: ', decoded);
+            /* Attached to the req */
+            /*  */
             req.user = decoded;
             next();
           }
         );
       } catch (error) {
-        // console.log(error);
         res.status(500).send({
           message: error?.message || error?.errorText
         });
@@ -106,14 +98,12 @@ async function run() {
 
       if (currentUser?.email !== email)
         return res.status(403).send({
-        message: "Forbidden access."
-      });
-      console.log(email);
+          message: "Forbidden access."
+        });
 
       const theUser = await userCollection.findOne({
         email
       });
-      console.log("is Employee : ", theUser);
 
       const isEmployee = theUser?.role === "employee";
       if (!isEmployee) res.status(403).send({
@@ -131,8 +121,8 @@ async function run() {
 
       if (currentUser?.email !== email)
         return res.status(403).send({
-        message: "Forbidden access."
-      });
+          message: "Forbidden access."
+        });
 
       // console.log(email);
 
@@ -149,62 +139,69 @@ async function run() {
       next();
     };
 
-
     const setTokenCookie = async (req, res, next) => {
       const user = req?.body;
 
+      /* Create cookie for the current user */
       if (user?.email) {
         const token = jsonwebtoken.sign(user, process.env.ACCESS_TOKEN_SECRET, {
           expiresIn: "24h",
         });
 
-        // console.log('Token generated: ', token);
-        res.cookie("SyncHome-token", token, {
-          // domain: [ "http://localhost:3000", "https://synchome.vercel.app" ],
+        /* set cookie to the user's browser */
+        res.cookie("SyncHomeToken", token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: process.env.NODE_ENV === "production" ? "none": "strict",
-          // secure: true,
-          // sameSite: 'none'
+          secure: process.env.NODE_ENV !== "production",
+          sameSite: process.env.NODE_ENV === "production" ? "Strict" : "None",
         });
 
-        req["SyncHome-token"] = token;
-
-        // console.log('Token Created: ', req[ "SyncHome-token" ]);
+        req.SyncHomeToken = token;
         next();
       } else {
         res
-        .status(400)
-        .send({
-          success: false, message: "Unknown error occurred"
-        });
+          .status(400)
+          .send({
+            error: true, message: "Unknown error occurred"
+          });
       }
     };
 
     /* Create JWT */
-    app.post("/api/v1/auth/jwt", setTokenCookie, (req, res) => {
+    app.post("/api/v1/auth/jwt", setTokenCookie, async (req, res) => {
       try {
-        const token = req["SyncHome-token"];
+        const token = await req.cookies?.SyncHomeToken;
 
-        // console.log('token in cookie: ', token);
+        // console.log('token in cookie: ', req.cookies, token);
 
         if (!token)
           return res
-        .status(400)
-        .send({
-          success: false, message: "Unknown error occurred"
-        });
+            .status(400)
+            .send({
+              error: true, message: "Unknown error occurred"
+            });
 
-        // console.log('User sign in successfully.');
+        // console.log('Token set: ', token);
         res.send({
-          success: true
+          error: false, message: 'User verified'
         });
       } catch (error) {
-        res.send({
-          error: true, message: error.message
+        res.status(500).send({
+          error: true, message: 'Internal server error'
         });
       }
     });
+
+    /* clear JWT */
+    app.post('/api/v1/auth/logout', (req, res) => {
+      try {
+        // console.log(req?.body);
+        res.clearCookie('SyncHomeToken', { maxAge: 0 }).send({ error: false, message: "Logout successfully." })
+      } catch (error) {
+        res.status(500).send({
+          error: true, message: 'Internal server error'
+        });
+      }
+    })
 
     /**
     * =============================
@@ -232,10 +229,8 @@ async function run() {
           const result = await userCollection.updateOne(query, updateDoc);
           res.send(result);
         } catch (error) {
-          res
-          .status(500)
-          .send({
-            status: error?.code, message: error?.message
+          res.status(500).send({
+            error: true, message: 'Internal server error'
           });
         }
       })
@@ -250,10 +245,8 @@ async function run() {
           const result = await userCollection.deleteOne(query);
           res.send(result);
         } catch (error) {
-          res
-          .status(500)
-          .send({
-            status: error?.code, message: error?.message
+          res.status(500).send({
+            error: true, message: 'Internal server error'
           });
         }
       })
@@ -284,10 +277,8 @@ async function run() {
           const result = await userCollection.updateOne(query, updateDoc, options);
           res.send(result);
         } catch (error) {
-          res
-          .status(500)
-          .send({
-            status: error?.code, message: error?.message
+          res.status(500).send({
+            error: true, message: 'Internal server error'
           });
         }
       })
@@ -310,10 +301,8 @@ async function run() {
           const result = await userCollection.updateOne(query, updateDoc);
           res.send(result);
         } catch (error) {
-          res
-          .status(500)
-          .send({
-            status: error?.code, message: error?.message
+          res.status(500).send({
+            error: true, message: 'Internal server error'
           });
         }
       })
@@ -328,7 +317,6 @@ async function run() {
             email
           });
 
-          // console.log('user: ', result);
           res.send({
             role: result?.role
           });
@@ -352,10 +340,8 @@ async function run() {
           // console.log('All users: ', result);
           res.send(result);
         } catch (error) {
-          res
-          .status(500)
-          .send({
-            status: error?.code, message: error?.message
+          res.status(500).send({
+            error: true, message: 'Internal server error'
           });
         }
       }
@@ -490,10 +476,10 @@ async function run() {
         try {
           const email = req.query.email;
           const result = await washingMachineCollection
-          .find({
-            email: email
-          })
-          .toArray();
+            .find({
+              email: email
+            })
+            .toArray();
           res.send(result);
         } catch (error) {
           res.status(500).send({
@@ -502,8 +488,8 @@ async function run() {
         }
       });
 
-     /* find specific report filtering by email */
-     app.get("/api/v1/events", async (req, res) => {
+    /* find specific report filtering by email */
+    app.get("/api/v1/events", async (req, res) => {
       try {
         const result = await communityEventCollection.find({}).toArray();
         res.send(result);
@@ -576,7 +562,7 @@ async function run() {
 
           // console.log('deleted notification: ', id);
           res.send(result);
-        }catch(error) {
+        } catch (error) {
           res.status(500).send({
             status: error?.code, message: error?.message
           });
@@ -755,24 +741,24 @@ async function run() {
         };
         const updateDoc = {
           $set: {
-            "energy_usage": [{
+            "energy_usage": [ {
               "duration": "week",
               "electricity": data?.electricity1,
               "water": data?.water1,
               "gas": data?.gas1
             },
-              {
-                "duration": "month",
-                "electricity": data?.electricity2,
-                "water": data?.water2,
-                "gas": data?.gas2
-              },
-              {
-                "duration": "year",
-                "electricity": data?.electricity3,
-                "water": data?.water3,
-                "gas": data?.gas3
-              },
+            {
+              "duration": "month",
+              "electricity": data?.electricity2,
+              "water": data?.water2,
+              "gas": data?.gas2
+            },
+            {
+              "duration": "year",
+              "electricity": data?.electricity3,
+              "water": data?.water3,
+              "gas": data?.gas3
+            },
             ]
           }
         }
@@ -792,48 +778,48 @@ async function run() {
         };
         const updateDoc = {
           $set: {
-            "usageData": [{
+            "usageData": [ {
               "day": "Monday",
               "electricity": data?.electricity1,
               "water": data?.water1,
               "gas": data?.gas1
             },
-              {
-                "day": "Tuesday",
-                "electricity": data?.electricity2,
-                "water": data?.water2,
-                "gas": data?.gas2
-              },
-              {
-                "day": "Wednesday",
-                "electricity": data?.electricity3,
-                "water": data?.water3,
-                "gas": data?.gas3
-              },
-              {
-                "day": "Thursday",
-                "electricity": data?.electricity4,
-                "water": data?.water4,
-                "gas": data?.gas4
-              },
-              {
-                "day": "Friday",
-                "electricity": data?.electricity5,
-                "water": data?.water5,
-                "gas": data?.gas5
-              },
-              {
-                "day": "Saturday",
-                "electricity": data?.electricity6,
-                "water": data?.water6,
-                "gas": data?.gas6
-              },
-              {
-                "day": "Sunday",
-                "electricity": data?.electricity7,
-                "water": data?.water7,
-                "gas": data?.gas7
-              }]
+            {
+              "day": "Tuesday",
+              "electricity": data?.electricity2,
+              "water": data?.water2,
+              "gas": data?.gas2
+            },
+            {
+              "day": "Wednesday",
+              "electricity": data?.electricity3,
+              "water": data?.water3,
+              "gas": data?.gas3
+            },
+            {
+              "day": "Thursday",
+              "electricity": data?.electricity4,
+              "water": data?.water4,
+              "gas": data?.gas4
+            },
+            {
+              "day": "Friday",
+              "electricity": data?.electricity5,
+              "water": data?.water5,
+              "gas": data?.gas5
+            },
+            {
+              "day": "Saturday",
+              "electricity": data?.electricity6,
+              "water": data?.water6,
+              "gas": data?.gas6
+            },
+            {
+              "day": "Sunday",
+              "electricity": data?.electricity7,
+              "water": data?.water7,
+              "gas": data?.gas7
+            } ]
           }
         }
         const result = await apartmentCollection.updateOne(query, updateDoc, options);
@@ -849,7 +835,7 @@ async function run() {
         const data = req.body.index;
         const unsetDoc = {
           $unset: {
-            [`devices.${data}`]: 1
+            [ `devices.${data}` ]: 1
           }
         }
         await apartmentCollection.updateOne(query, unsetDoc);
@@ -871,7 +857,7 @@ async function run() {
         const data = req.body;
         const updateDoc = {
           $set: {
-            [`devices.${data?.index}.status`]: data?.value
+            [ `devices.${data?.index}.status` ]: data?.value
           }
         }
         const result = await apartmentCollection.updateOne(query, updateDoc);
@@ -887,7 +873,7 @@ async function run() {
         const data = req.body;
         const updateDoc = {
           $set: {
-            [`${data?.name}.status`]: data?.value
+            [ `${data?.name}.status` ]: data?.value
           }
         }
         const result = await apartmentCollection.updateOne(query, updateDoc);
@@ -933,9 +919,9 @@ async function run() {
 run().catch(console.dir);
 
 app.get("/", (_req, res) => {
-res.send("SyncHome App is running");
+  res.send("SyncHome App is running");
 });
 
 app.listen(port, () => {
-console.log(`SyncHome server is running on http://localhost:${port}`);
+  console.log(`SyncHome server is running on http://localhost:${port}`);
 });
