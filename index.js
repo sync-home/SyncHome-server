@@ -321,7 +321,7 @@ async function run() {
           const result = await userCollection.findOne({
             email
           });
-
+          
           res.send({
             role: result?.role
           });
