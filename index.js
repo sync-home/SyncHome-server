@@ -192,10 +192,15 @@ async function run() {
     });
 
     /* clear JWT */
-    app.post('/api/v1/auth/logout', (req, res) => {
+    app.post('/api/v1/auth/logout', (_req, res) => {
       try {
         // console.log(req?.body);
-        res.clearCookie('SyncHomeToken', { maxAge: 0 }).send({ error: false, message: "Logout successfully." })
+        res.clearCookie('SyncHomeToken', {
+          maxAge: 0,
+          httpOnly: true,
+          secure: process.env.NODE_ENV !== "production",
+          sameSite: process.env.NODE_ENV === "production" ? "Strict" : "None",
+        }).send({ error: false, message: "Logout successfully." })
       } catch (error) {
         res.status(500).send({
           error: true, message: 'Internal server error'
