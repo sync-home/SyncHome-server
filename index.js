@@ -50,6 +50,13 @@ async function run() {
     * ===================================================
     * */
 
+    /* options for cookieParser */
+    const options = {
+      httpOnly: true,
+      secure: true,
+      sameSite: "Strict"
+    }
+
     /* Middleware JWT implementation */
     const verifyToken = async (req, res, next) => {
       try {
@@ -149,11 +156,7 @@ async function run() {
         });
 
         /* set cookie to the user's browser */
-        res.cookie("SyncHomeToken", token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV !== "production",
-          sameSite: process.env.NODE_ENV === "production" ? "Strict" : "None",
-        });
+        res.cookie("SyncHomeToken", token, { ...options });
 
         req.SyncHomeToken = token;
         next();
@@ -196,10 +199,7 @@ async function run() {
       try {
         // console.log(req?.body);
         res.clearCookie('SyncHomeToken', {
-          maxAge: 0,
-          httpOnly: true,
-          secure: process.env.NODE_ENV !== "production",
-          sameSite: process.env.NODE_ENV === "production" ? "Strict" : "None",
+          maxAge: 0, ...options
         }).send({ error: false, message: "Logout successfully." })
       } catch (error) {
         res.status(500).send({
@@ -321,7 +321,7 @@ async function run() {
           const result = await userCollection.findOne({
             email
           });
-          
+
           res.send({
             role: result?.role
           });
