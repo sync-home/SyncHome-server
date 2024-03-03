@@ -23,6 +23,20 @@ app.use(
 app.use(express.static("public"));
 app.use(express.json());
 
+
+/* options for cookieParser */
+// const options = {
+//   httpOnly: true,
+//   secure: true,
+//   sameSite: "None"
+// }
+
+const options = {
+  httpOnly: true,
+  secure: true,
+  sameSite: "Strict"
+}
+
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(process.env.URI, {
   serverApi: {
@@ -50,18 +64,11 @@ async function run() {
     * ===================================================
     * */
 
-    /* options for cookieParser */
-    const options = {
-      httpOnly: true,
-      secure: true,
-      sameSite: "Strict"
-    }
 
     /* Middleware JWT implementation */
     const verifyToken = async (req, res, next) => {
       try {
         const token = req?.cookies?.SyncHomeToken;
-        // console.log("token from browser cookie: ", token);
 
         /* check the cookie set to the user's browser correctly */
         if (!token)
@@ -77,12 +84,11 @@ async function run() {
               return res
                 .status(401)
                 .send({
-                  message: "You are not authorized"
+                  message: "Unauthorized access"
                 });
-
             }
-            /* Attached to the req */
-            /*  */
+            // console.log('verified');
+            /* Attached to the request */
             req.user = decoded;
             next();
           }
@@ -122,16 +128,19 @@ async function run() {
 
     const verifyAdmin = async (req, res, next) => {
       const currentUser = req?.query;
+      console.log('user info: ', req?.body, req?.query);
       const {
         email
       } = req?.user;
+
+      console.log(currentUser?.email, email);
 
       if (currentUser?.email !== email)
         return res.status(403).send({
           message: "Forbidden access."
         });
 
-      // console.log(email);
+      console.log('verifying admin role');
 
       const theUser = await userCollection.findOne({
         email
@@ -146,47 +155,27 @@ async function run() {
       next();
     };
 
-    const setTokenCookie = async (req, res, next) => {
-      const user = req?.body;
-
-      /* Create cookie for the current user */
-      if (user?.email) {
-        const token = jsonwebtoken.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-          expiresIn: "24h",
-        });
-
-        /* set cookie to the user's browser */
-        res.cookie("SyncHomeToken", token, { ...options });
-
-        req.SyncHomeToken = token;
-        next();
-      } else {
-        res
-          .status(400)
-          .send({
-            error: true, message: "Unknown error occurred"
-          });
-      }
-    };
 
     /* Create JWT */
-    app.post("/api/v1/auth/jwt", setTokenCookie, async (req, res) => {
+    app.post("/api/v1/auth/jwt", async (req, res) => {
       try {
-        const token = await req.cookies?.SyncHomeToken;
+        const user = req?.body;
+        console.log('Info for token: ', user);
+        /* Create cookie for the current user */
+        if (user?.email) {
+          const token = jsonwebtoken.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+            expiresIn: "24h",
+          });
 
-        // console.log('token in cookie: ', req.cookies, token);
-
-        if (!token)
-          return res
+          /* set cookie to the user's browser */
+          res.status(200).cookie("SyncHomeToken", token, { ...options });
+        } else {
+          res
             .status(400)
             .send({
               error: true, message: "Unknown error occurred"
             });
-
-        // console.log('Token set: ', token);
-        res.send({
-          error: false, message: 'User verified'
-        });
+        }
       } catch (error) {
         res.status(500).send({
           error: true, message: 'Internal server error'
@@ -197,7 +186,6 @@ async function run() {
     /* clear JWT */
     app.post('/api/v1/auth/logout', (_req, res) => {
       try {
-        // console.log(req?.body);
         res.clearCookie('SyncHomeToken', {
           maxAge: 0, ...options
         }).send({ error: false, message: "Logout successfully." })
@@ -333,16 +321,14 @@ async function run() {
         }
       });
 
+    /* TODO: Need restricted for non-admin request by Middleware */
     /* Get all users */
     app.get(
       "/api/v1/users",
       verifyToken,
-      verifyAdmin,
       async (_req, res) => {
         try {
           const result = await userCollection.find({}).toArray();
-
-          // console.log('All users: ', result);
           res.send(result);
         } catch (error) {
           res.status(500).send({
