@@ -58,6 +58,7 @@ async function run() {
     const communityEventCollection = db.collection("events");
     const trashCollection = db.collection("trash");
     const productCollection = db.collection("shop");
+    const savedProductCollection = db.collection("cart");
 
     /**
     * ===================================================
@@ -924,7 +925,7 @@ async function run() {
     })
 
     /* get categories of products */
-    app.get('/api/v1/products-categories', async (_req, res) => {
+    app.get('/api/v1/product/categories', async (_req, res) => {
       try {
         const categories = await productCollection.aggregate([
           {
@@ -978,6 +979,46 @@ async function run() {
         ]).toArray();
         console.log(products);
         res.send(products)
+      } catch (error) {
+        res.status(500).send({
+          error: true, message: 'Internal server error'
+        });
+      }
+    })
+
+    /**
+     * =================================
+     * Cart APIs
+     * =================================
+     */
+    /* Get cart */
+    /* get categories of products */
+    app.get('/api/v1/cart', async (_req, res) => {
+      try {
+        const cart = await savedProductCollection.find({}).toArray();
+
+        console.log(cart);
+        res.send(cart)
+      } catch (error) {
+        res.status(500).send({
+          error: true, message: 'Internal server error'
+        });
+      }
+    })
+    app.post('/api/v1/add-to-cart', async (req, res) => {
+      try {
+        const product = req.body;
+
+        let result = null;
+
+        if (Array.isArray(product)) {
+          result = await savedProductCollection.insertMany(product);
+        } else {
+          result = await savedProductCollection.insertOne(...product);
+        }
+
+        console.log(result);
+        res.send(result)
       } catch (error) {
         res.status(500).send({
           error: true, message: 'Internal server error'
