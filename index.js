@@ -57,6 +57,7 @@ async function run() {
     const washingMachineCollection = db.collection("washing");
     const communityEventCollection = db.collection("events");
     const trashCollection = db.collection("trash");
+    const productCollection = db.collection("shop");
 
     /**
     * ===================================================
@@ -902,6 +903,87 @@ async function run() {
         const result = await apartmentCollection.updateOne(query, updateDoc);
         res.send(result);
       })
+
+    /**
+     * =======================================
+     * Smart Shop APIs
+     * =======================================
+     */
+    /* get all products */
+    app.get('/api/v1/products', async (_req, res) => {
+      try {
+        const products = await productCollection.find({}).toArray();
+
+        // console.log(products);
+        res.send(products)
+      } catch (error) {
+        res.status(500).send({
+          error: true, message: 'Internal server error'
+        });
+      }
+    })
+
+    /* get categories of products */
+    app.get('/api/v1/products-categories', async (_req, res) => {
+      try {
+        const categories = await productCollection.aggregate([
+          {
+            $group: {
+              _id: 'category',
+              categories: { $addToSet: '$category' }
+            }
+          },
+          {
+            $project: {
+              _id: 0,
+              categories: 1
+            }
+          }
+        ]).toArray();
+
+        res.send(...categories)
+      } catch (error) {
+        res.status(500).send({
+          error: true, message: 'Internal server error'
+        });
+      }
+    })
+
+    /* get products by categories */
+    app.get('/api/v1/products-by-category/:category', async (req, res) => {
+      try {
+        const { category } = req.params;
+        const products = await productCollection.aggregate([
+          {
+            $match: { category }
+          }
+        ]).toArray();
+
+        res.send(products)
+      } catch (error) {
+        res.status(500).send({
+          error: true, message: 'Internal server error'
+        });
+      }
+    })
+
+    /* get products by type */
+    app.get('/api/v1/products-by-type/:type', async (req, res) => {
+      try {
+        const { type } = req.params;
+        const products = await productCollection.aggregate([
+          {
+            $match: { type }
+          }
+        ]).toArray();
+        console.log(products);
+        res.send(products)
+      } catch (error) {
+        res.status(500).send({
+          error: true, message: 'Internal server error'
+        });
+      }
+    })
   } catch (error) {
     console.log(error);
   }
