@@ -58,6 +58,7 @@ async function run() {
     const communityEventCollection = db.collection("events");
     const trashCollection = db.collection("trash");
     const productCollection = db.collection("shop");
+    const savedProductCollection = db.collection("cart");
 
     /**
     * ===================================================
@@ -102,9 +103,7 @@ async function run() {
     };
 
     /* verify admin after verify token */
-    const verifyEmployee = async (req,
-      res,
-      next) => {
+    const verifyEmployee = async (req, res, next) => {
       const currentUser = req?.query;
       const {
         email
@@ -129,19 +128,19 @@ async function run() {
 
     const verifyAdmin = async (req, res, next) => {
       const currentUser = req?.query;
-      console.log('user info: ', req?.body, req?.query);
+      // console.log('user info: ', req?.body, req?.query);
       const {
         email
       } = req?.user;
 
-      console.log(currentUser?.email, email);
+      // console.log(currentUser?.email, email);
 
       if (currentUser?.email !== email)
         return res.status(403).send({
           message: "Forbidden access."
         });
 
-      console.log('verifying admin role');
+      // console.log('verifying admin role');
 
       const theUser = await userCollection.findOne({
         email
@@ -161,7 +160,7 @@ async function run() {
     app.post("/api/v1/auth/jwt", async (req, res) => {
       try {
         const user = req?.body;
-        console.log('Info for token: ', user);
+        // console.log('Info for token: ', user);
         /* Create cookie for the current user */
         if (user?.email) {
           const token = jsonwebtoken.sign(user, process.env.ACCESS_TOKEN_SECRET, {
@@ -324,9 +323,7 @@ async function run() {
 
     /* TODO: Need restricted for non-admin request by Middleware */
     /* Get all users */
-    app.get(
-      "/api/v1/users",
-      verifyToken,
+    app.get("/api/v1/users",
       async (_req, res) => {
         try {
           const result = await userCollection.find({}).toArray();
@@ -924,7 +921,7 @@ async function run() {
     })
 
     /* get categories of products */
-    app.get('/api/v1/products-categories', async (_req, res) => {
+    app.get('/api/v1/product/categories', async (_req, res) => {
       try {
         const categories = await productCollection.aggregate([
           {
@@ -976,7 +973,7 @@ async function run() {
             $match: { type }
           }
         ]).toArray();
-        console.log(products);
+        // console.log(products);
         res.send(products)
       } catch (error) {
         res.status(500).send({
@@ -984,8 +981,53 @@ async function run() {
         });
       }
     })
+
+    /**
+     * =================================
+     * Cart APIs
+     * =================================
+     */
+    /* Get cart */
+    /* get categories of products */
+
+    app.get('/api/v1/cart', async (req, res) => {
+      try {
+        const { email } = req?.body;
+        // console.log(req?.body);
+        const cart = await savedProductCollection.find({}).toArray();
+
+        // console.log(cart);
+        res.send(cart);
+      } catch (error) {
+        res.status(500).send({
+          error: true, message: 'Internal server error'
+        });
+      }
+    })
+
+    app.post('/api/v1/add-to-cart', async (req, res) => {
+      try {
+        const product = req.body;
+
+        let result = null;
+
+        if (Array.isArray(product)) {
+          result = await savedProductCollection.insertMany(product);
+        } else {
+          result = await savedProductCollection.insertOne(...product);
+        }
+
+        // console.log(result);
+        res.send(result)
+      } catch (error) {
+        res.status(500).send({
+          error: true, message: 'Internal server error'
+        });
+      }
+    })
+
   } catch (error) {
-    console.log(error);
+    // console.log(error);
   }
 }
 
